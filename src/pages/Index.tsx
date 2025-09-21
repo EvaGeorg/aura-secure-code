@@ -45,7 +45,7 @@ const Index = () => {
         body: JSON.stringify({
           code: code,
           language: language || 'javascript',
-          analysisType: 'security',
+          fileName: null,
           userApiKey: apiMode === 'user' ? apiKey : null
         })
       });
