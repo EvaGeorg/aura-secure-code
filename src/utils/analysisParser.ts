@@ -16,13 +16,24 @@ export const parseGeminiAnalysis = (rawAnalysis: string): ParsedAnalysis => {
   console.log('=== END RAW RESPONSE ===');
 
   try {
-    // Strip the introductory paragraph
+    // Extract the security score first
+    const scoreMatch = rawAnalysis.match(/\*\*Overall Security Score:\s*(\d+(?:\.\d+)?)\s*\/\s*10\*\*/i);
+    if (scoreMatch) {
+      score = parseFloat(scoreMatch[1]);
+      console.log('Found security score:', score);
+    }
+
+    // Strip everything before the first section header
     let cleanedAnalysis = rawAnalysis;
-    const introPattern = /^.*?(?=(?:Critical|High|Medium|Low)\s+Vulnerabilities)/s;
+    const introPattern = /^.*?(?=\*\*(?:Critical|High|Medium|Low)\s+Vulnerabilities\*\*)/s;
     const introMatch = cleanedAnalysis.match(introPattern);
     if (introMatch) {
       cleanedAnalysis = cleanedAnalysis.replace(introPattern, '').trim();
-      summary = introMatch[0].trim().split('\n')[0] || 'Security analysis completed';
+      // Extract summary from the intro, but exclude the score line
+      const introLines = introMatch[0].split('\n').filter(line => 
+        line.trim() && !line.includes('Overall Security Score')
+      );
+      summary = introLines[introLines.length - 1]?.trim() || 'Security analysis completed';
       console.log('Intro found and stripped:', introMatch[0].substring(0, 100) + '...');
     } else {
       summary = 'Security analysis completed';
@@ -40,6 +51,12 @@ export const parseGeminiAnalysis = (rawAnalysis: string): ParsedAnalysis => {
     let findingId = 1;
 
     for (const [severity, sectionContent] of Object.entries(severitySections)) {
+      // Skip sections that only contain "None found"
+      if (sectionContent.toLowerCase().includes('none found')) {
+        console.log(`Skipping ${severity} section - contains "None found"`);
+        continue;
+      }
+      
       const vulnerabilities = parseVulnerabilitiesFromSection(sectionContent, severity as any);
       vulnerabilities.forEach(vuln => {
         findings.push({
@@ -47,13 +64,6 @@ export const parseGeminiAnalysis = (rawAnalysis: string): ParsedAnalysis => {
           id: `finding-${findingId++}`
         });
       });
-    }
-
-    // Calculate score based on findings
-    if (findings.length > 0) {
-      const severityWeights = { critical: 1, high: 3, medium: 6, low: 8 };
-      const avgSeverity = findings.reduce((sum, f) => sum + (severityWeights[f.severity] || 5), 0) / findings.length;
-      score = Math.max(1, Math.min(10, Math.round(avgSeverity)));
     }
 
   } catch (error) {
@@ -74,8 +84,8 @@ function parseSeveritySections(analysis: string): Record<string, string> {
   
   console.log('Parsing severity sections from:', analysis.substring(0, 200) + '...');
   
-  // Match severity sections like "Critical Vulnerabilities", "High Vulnerabilities", etc.
-  const sectionPattern = /(Critical|High|Medium|Low)\s+Vulnerabilities([\s\S]*?)(?=(?:Critical|High|Medium|Low)\s+Vulnerabilities|$)/g;
+  // Match severity sections with markdown bold formatting like "**Critical Vulnerabilities**"
+  const sectionPattern = /\*\*(Critical|High|Medium|Low)\s+Vulnerabilities\*\*([\s\S]*?)(?=\*\*(?:Critical|High|Medium|Low)\s+Vulnerabilities\*\*|$)/g;
   
   let match;
   while ((match = sectionPattern.exec(analysis)) !== null) {
@@ -88,14 +98,6 @@ function parseSeveritySections(analysis: string): Record<string, string> {
   }
   
   console.log('Total sections found:', Object.keys(sections));
-  
-  // Fallback: if no sections found, try to parse the whole thing as one section
-  if (Object.keys(sections).length === 0) {
-    console.log('No severity sections found, treating entire analysis as medium severity');
-    sections['medium'] = analysis;
-  }
-  
-  return sections;
   
   // Fallback: if no sections found, try to parse the whole thing as one section
   if (Object.keys(sections).length === 0) {
