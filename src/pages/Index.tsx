@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CodeEditor } from '@/components/CodeEditor';
 import { ResultsPanel, SecurityFinding } from '@/components/ResultsPanel';
-import { AnalysisDisplay } from '@/components/AnalysisDisplay';
 import { APIKeyManager, APIMode } from '@/components/APIKeyManager';
+import { parseGeminiAnalysis } from '@/utils/analysisParser';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -17,14 +17,9 @@ const Index = () => {
   const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState('');
+  const [results, setResults] = useState<{ score: number; findings: SecurityFinding[]; summary: string } | null>(null);
   const [error, setError] = useState('');
   const [metadata, setMetadata] = useState(null);
-  // Legacy state for backwards compatibility with ResultsPanel
-  const [results, setResults] = useState<{
-    score: number;
-    findings: SecurityFinding[];
-    summary: string;
-  } | null>(null);
   const { toast } = useToast();
 
   const API_URL = 'https://secure-code-analyzer.evaincybersec.workers.dev';
@@ -64,20 +59,18 @@ const Index = () => {
       
       if (result.success) {
         setAnalysisResult(result.analysis);
-        setMetadata(result.metadata);
         
-        // Convert to legacy format for ResultsPanel compatibility
-        if (result.analysis && result.analysis.findings) {
-          setResults({
-            score: result.analysis.score || 0,
-            findings: result.analysis.findings || [],
-            summary: result.analysis.summary || 'Analysis completed'
-          });
+        // Parse the raw analysis into structured data
+        const parsedResults = parseGeminiAnalysis(result.analysis);
+        setResults(parsedResults);
+
+        if (result.metadata) {
+          setMetadata(result.metadata);
         }
         
         toast({
           title: "Analysis Complete",
-          description: "Code analysis finished successfully",
+          description: `Found ${parsedResults.findings.length} security issues`,
         });
       } else {
         throw new Error(result.error || 'Analysis failed');
@@ -201,9 +194,9 @@ const Index = () => {
                 >
                   <Card className="glass-card h-full">
                     <div className="p-6 h-full">
-                      <AnalysisDisplay 
+                      <ResultsPanel 
                         isAnalyzing={loading}
-                        analysis={analysisResult}
+                        results={results}
                       />
                     </div>
                   </Card>
