@@ -236,48 +236,92 @@ export const ResultsPanel = ({ isAnalyzing, results }: ResultsPanelProps) => {
           </Card>
 
           {/* Findings List */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             {results.findings.map((finding) => (
-              <Card key={finding.id} className="glass-card">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className={`severity-${finding.severity} mt-1`}>
-                      {getSeverityIcon(finding.severity)}
-                    </div>
-                    <div className="flex-1 space-y-3">
-                      {/* Vulnerability Name & Severity */}
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-base font-medium">{finding.title}</h3>
-                          <Badge 
-                            variant={getSeverityColor(finding.severity) as any}
-                            className="text-xs"
-                          >
-                            {finding.severity.toUpperCase()}
-                          </Badge>
-                        </div>
+              <Card key={finding.id} className="border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className={`mt-0.5 ${
+                        finding.severity === 'critical' ? 'text-red-500' :
+                        finding.severity === 'high' ? 'text-orange-500' :
+                        finding.severity === 'medium' ? 'text-yellow-500' :
+                        'text-green-500'
+                      }`}>
+                        {getSeverityIcon(finding.severity)}
                       </div>
-
-                      {/* Recommendation & Fix */}
-                      <div className="space-y-2">
-                        <div>
-                          <h4 className="text-sm font-medium text-muted-foreground mb-1">Fix:</h4>
-                          <p className="text-sm text-success">{finding.recommendation}</p>
-                        </div>
-                      </div>
-
-                      {/* Copy button */}
-                      <div className="flex justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyFinding(finding)}
-                          className="text-muted-foreground hover:text-foreground"
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg leading-tight mb-2">
+                          {finding.title}
+                        </h3>
+                        <Badge 
+                          variant={
+                            finding.severity === 'critical' ? 'destructive' :
+                            finding.severity === 'high' ? 'secondary' :
+                            finding.severity === 'medium' ? 'outline' :
+                            'default'
+                          }
+                          className="text-xs font-medium"
                         >
-                          <Copy className="h-4 w-4" />
-                        </Button>
+                          {finding.severity.toUpperCase()} RISK
+                        </Badge>
                       </div>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyFinding(finding)}
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="pt-0">
+                  <div className="space-y-4">
+                    {/* Category */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Code className="h-4 w-4" />
+                      <span>{finding.category}</span>
+                      {finding.lineNumber && (
+                        <>
+                          <span>•</span>
+                          <span>Line {finding.lineNumber}</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Fix Recommendation */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-muted">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-sm mb-2 text-green-700">
+                            Recommended Fix
+                          </h4>
+                          <p className="text-sm text-foreground leading-relaxed">
+                            {finding.recommendation}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Additional References */}
+                    {(finding.cweId || finding.owaspRef) && (
+                      <div className="flex gap-4 text-xs text-muted-foreground">
+                        {finding.cweId && (
+                          <span className="bg-muted px-2 py-1 rounded">
+                            CWE-{finding.cweId}
+                          </span>
+                        )}
+                        {finding.owaspRef && (
+                          <span className="bg-muted px-2 py-1 rounded">
+                            OWASP: {finding.owaspRef}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
