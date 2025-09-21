@@ -64,6 +64,82 @@ export const ResultsPanel = ({ isAnalyzing, results }: ResultsPanelProps) => {
     });
   };
 
+  const copyAllResults = () => {
+    if (!results) return;
+    
+    let report = `Security Analysis Report\n`;
+    report += `========================\n\n`;
+    report += `Overall Security Score: ${results.score}/10\n`;
+    report += `Summary: ${results.summary}\n\n`;
+    report += `Total Findings: ${results.findings.length}\n\n`;
+    
+    results.findings.forEach((finding, index) => {
+      report += `${index + 1}. ${finding.title}\n`;
+      report += `   Severity: ${finding.severity.toUpperCase()}\n`;
+      report += `   Category: ${finding.category}\n`;
+      if (finding.lineNumber) report += `   Line: ${finding.lineNumber}\n`;
+      report += `   Description: ${finding.description}\n`;
+      report += `   Recommendation: ${finding.recommendation}\n`;
+      if (finding.cweId) report += `   CWE ID: ${finding.cweId}\n`;
+      if (finding.owaspRef) report += `   OWASP Reference: ${finding.owaspRef}\n`;
+      report += `\n`;
+    });
+    
+    navigator.clipboard.writeText(report);
+    toast({
+      title: "Report copied to clipboard",
+      description: "Complete security analysis report has been copied.",
+    });
+  };
+
+  const exportResults = () => {
+    if (!results) return;
+    
+    let report = `# Security Analysis Report\n\n`;
+    report += `**Overall Security Score:** ${results.score}/10\n\n`;
+    report += `**Summary:** ${results.summary}\n\n`;
+    report += `**Total Findings:** ${results.findings.length}\n\n`;
+    
+    const severityOrder = ['critical', 'high', 'medium', 'low'];
+    severityOrder.forEach(severity => {
+      const findingsOfSeverity = results.findings.filter(f => f.severity === severity);
+      if (findingsOfSeverity.length > 0) {
+        report += `## ${severity.toUpperCase()} Vulnerabilities (${findingsOfSeverity.length})\n\n`;
+        
+        findingsOfSeverity.forEach((finding, index) => {
+          report += `### ${index + 1}. ${finding.title}\n\n`;
+          report += `- **Severity:** ${finding.severity.toUpperCase()}\n`;
+          report += `- **Category:** ${finding.category}\n`;
+          if (finding.lineNumber) report += `- **Line:** ${finding.lineNumber}\n`;
+          report += `\n**Description:**\n${finding.description}\n\n`;
+          report += `**Recommendation:**\n${finding.recommendation}\n\n`;
+          if (finding.cweId || finding.owaspRef) {
+            report += `**References:**\n`;
+            if (finding.cweId) report += `- CWE-${finding.cweId}\n`;
+            if (finding.owaspRef) report += `- OWASP: ${finding.owaspRef}\n`;
+            report += `\n`;
+          }
+          report += `---\n\n`;
+        });
+      }
+    });
+    
+    const blob = new Blob([report], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `security-analysis-${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Report exported",
+      description: "Security analysis report has been downloaded as Markdown.",
+    });
+  };
+
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'critical': return <AlertCircle className="h-4 w-4" />;
@@ -109,15 +185,16 @@ export const ResultsPanel = ({ isAnalyzing, results }: ResultsPanelProps) => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => copyFinding(results.findings[0])}
+              onClick={copyAllResults}
               className="glass border-primary/30"
             >
               <Copy className="h-4 w-4 mr-2" />
-              Copy
+              Copy All
             </Button>
             <Button
               variant="outline"
               size="sm"
+              onClick={exportResults}
               className="glass border-primary/30"
             >
               <Download className="h-4 w-4 mr-2" />

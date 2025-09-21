@@ -164,10 +164,10 @@ IMPORTANT FORMATTING RULES:
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature: 0.1, // Very low temperature for consistent, structured output
-              topK: 40,
-              topP: 0.8,
-              maxOutputTokens: 2048,
+              temperature: 0.0, // Maximum determinism
+              topK: 20,
+              topP: 0.9,
+              maxOutputTokens: 4096, // More space for complete analysis
             },
             safetySettings: [
               {
