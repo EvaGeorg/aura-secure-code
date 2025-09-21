@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CodeEditor } from '@/components/CodeEditor';
 import { ResultsPanel, SecurityFinding } from '@/components/ResultsPanel';
+import { AnalysisDisplay } from '@/components/AnalysisDisplay';
 import { APIKeyManager, APIMode } from '@/components/APIKeyManager';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -200,9 +201,9 @@ const Index = () => {
                 >
                   <Card className="glass-card h-full">
                     <div className="p-6 h-full">
-                      <ResultsPanel 
+                      <AnalysisDisplay 
                         isAnalyzing={loading}
-                        results={results}
+                        analysis={analysisResult}
                       />
                     </div>
                   </Card>
