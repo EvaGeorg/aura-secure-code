@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import Monaco from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { Upload, FileCode, Zap } from 'lucide-react';
+import { Upload, FileCode, Zap, FolderOpen } from 'lucide-react';
 
 const SUPPORTED_LANGUAGES = [
   { value: 'javascript', label: 'JavaScript', ext: ['.js', '.mjs'] },
@@ -80,6 +80,7 @@ export const CodeEditor = ({
 }: CodeEditorProps) => {
   const [charCount, setCharCount] = useState(0);
   const maxChars = 50000;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const detectLanguage = (filename: string) => {
     const extension = filename.substring(filename.lastIndexOf('.'));
@@ -127,6 +128,29 @@ export const CodeEditor = ({
     setCharCount(exampleCode.length);
   };
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        setCode(content);
+        setCharCount(content.length);
+        
+        // Auto-detect language
+        const detectedLang = detectLanguage(file.name);
+        setLanguage(detectedLang);
+      };
+      reader.readAsText(file);
+    }
+    // Reset the input so the same file can be selected again
+    event.target.value = '';
+  };
+
+  const openFileDialog = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="flex flex-col h-full space-y-4">
       {/* Header Controls */}
@@ -157,6 +181,16 @@ export const CodeEditor = ({
             className="glass border-primary/30 hover:border-primary/60"
           >
             Load Example
+          </Button>
+
+          <Button
+            variant="outline" 
+            size="sm"
+            onClick={openFileDialog}
+            className="glass border-primary/30 hover:border-primary/60"
+          >
+            <FolderOpen className="h-4 w-4 mr-2" />
+            Load File
           </Button>
 
           <Button
@@ -209,7 +243,7 @@ export const CodeEditor = ({
             <Button 
               variant="outline" 
               className="glass border-primary/30"
-              onClick={(e) => e.stopPropagation()}
+              onClick={openFileDialog}
             >
               Browse Files
             </Button>
@@ -236,6 +270,15 @@ export const CodeEditor = ({
           />
         )}
       </Card>
+
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        onChange={handleFileSelect}
+        accept=".js,.ts,.tsx,.py,.java,.php,.cs,.cpp,.cc,.go,.rs,.rb,.swift,.kt,.sql,.html,.css,.txt,.md"
+        style={{ display: 'none' }}
+      />
 
       {/* Character Count */}
       <div className="flex justify-between items-center text-sm">
