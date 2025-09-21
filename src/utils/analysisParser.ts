@@ -11,6 +11,10 @@ export const parseGeminiAnalysis = (rawAnalysis: string): ParsedAnalysis => {
   let summary = '';
   let score = 8;
 
+  console.log('=== GEMINI RAW RESPONSE ===');
+  console.log(rawAnalysis);
+  console.log('=== END RAW RESPONSE ===');
+
   try {
     // Strip the introductory paragraph
     let cleanedAnalysis = rawAnalysis;
@@ -19,12 +23,20 @@ export const parseGeminiAnalysis = (rawAnalysis: string): ParsedAnalysis => {
     if (introMatch) {
       cleanedAnalysis = cleanedAnalysis.replace(introPattern, '').trim();
       summary = introMatch[0].trim().split('\n')[0] || 'Security analysis completed';
+      console.log('Intro found and stripped:', introMatch[0].substring(0, 100) + '...');
     } else {
       summary = 'Security analysis completed';
+      console.log('No intro pattern found, using full analysis');
     }
+
+    console.log('=== CLEANED ANALYSIS ===');
+    console.log(cleanedAnalysis);
+    console.log('=== END CLEANED ===');
 
     // Parse severity sections
     const severitySections = parseSeveritySections(cleanedAnalysis);
+    console.log('Severity sections found:', Object.keys(severitySections));
+    
     let findingId = 1;
 
     for (const [severity, sectionContent] of Object.entries(severitySections)) {
@@ -60,6 +72,8 @@ export const parseGeminiAnalysis = (rawAnalysis: string): ParsedAnalysis => {
 function parseSeveritySections(analysis: string): Record<string, string> {
   const sections: Record<string, string> = {};
   
+  console.log('Parsing severity sections from:', analysis.substring(0, 200) + '...');
+  
   // Match severity sections like "Critical Vulnerabilities", "High Vulnerabilities", etc.
   const sectionPattern = /(Critical|High|Medium|Low)\s+Vulnerabilities([\s\S]*?)(?=(?:Critical|High|Medium|Low)\s+Vulnerabilities|$)/g;
   
@@ -67,9 +81,26 @@ function parseSeveritySections(analysis: string): Record<string, string> {
   while ((match = sectionPattern.exec(analysis)) !== null) {
     const severity = match[1].toLowerCase();
     const content = match[2].trim();
+    console.log(`Found ${severity} section with content:`, content.substring(0, 100) + '...');
     if (content) {
       sections[severity] = content;
     }
+  }
+  
+  console.log('Total sections found:', Object.keys(sections));
+  
+  // Fallback: if no sections found, try to parse the whole thing as one section
+  if (Object.keys(sections).length === 0) {
+    console.log('No severity sections found, treating entire analysis as medium severity');
+    sections['medium'] = analysis;
+  }
+  
+  return sections;
+  
+  // Fallback: if no sections found, try to parse the whole thing as one section
+  if (Object.keys(sections).length === 0) {
+    console.log('No severity sections found, treating entire analysis as medium severity');
+    sections['medium'] = analysis;
   }
   
   return sections;
@@ -77,6 +108,8 @@ function parseSeveritySections(analysis: string): Record<string, string> {
 
 function parseVulnerabilitiesFromSection(sectionContent: string, severity: 'critical' | 'high' | 'medium' | 'low'): Omit<SecurityFinding, 'id'>[] {
   const vulnerabilities: Omit<SecurityFinding, 'id'>[] = [];
+  
+  console.log(`Parsing ${severity} vulnerabilities from:`, sectionContent.substring(0, 200) + '...');
   
   // Split by numbered items (1., 2., etc.)
   const vulnPattern = /(\d+\.\s+[^\n]+)([\s\S]*?)(?=\d+\.\s+|$)/g;
@@ -86,13 +119,20 @@ function parseVulnerabilitiesFromSection(sectionContent: string, severity: 'crit
     const title = match[1].replace(/^\d+\.\s*/, '').trim();
     const content = match[2].trim();
     
+    console.log(`Found vulnerability: "${title}" with content:`, content.substring(0, 100) + '...');
+    
     if (title) {
       const vulnerability = parseVulnerabilityContent(title, content, severity);
       if (vulnerability) {
+        console.log(`Successfully parsed vulnerability: ${vulnerability.title}`);
         vulnerabilities.push(vulnerability);
+      } else {
+        console.log('Failed to parse vulnerability content');
       }
     }
   }
+  
+  console.log(`Total vulnerabilities found in ${severity} section:`, vulnerabilities.length);
   
   return vulnerabilities;
 }
