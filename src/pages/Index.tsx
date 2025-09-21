@@ -7,60 +7,89 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Zap, Code, Settings } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('javascript');
   const [apiMode, setApiMode] = useState<APIMode>('free');
   const [apiKey, setApiKey] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState('');
+  const [error, setError] = useState('');
+  const [metadata, setMetadata] = useState(null);
+  // Legacy state for backwards compatibility with ResultsPanel
   const [results, setResults] = useState<{
     score: number;
     findings: SecurityFinding[];
     summary: string;
   } | null>(null);
+  const { toast } = useToast();
 
   const API_URL = 'https://secure-code-analyzer.your-username.workers.dev';
 
   // API function to analyze code
   const analyzeCode = async () => {
     if (!code.trim()) {
+      setError('Please enter some code to analyze');
       return;
     }
 
-    setIsAnalyzing(true);
-    setResults(null);
-
     try {
+      setLoading(true);
+      setError('');
+      setResults(null);
+      
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: code,
-          language: language,
+          language: language || 'javascript',
           analysisType: 'security',
           userApiKey: apiMode === 'user' ? apiKey : null
         })
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Analysis failed: ${response.status}`);
       }
 
       const result = await response.json();
-      setResults(result);
+      
+      if (result.success) {
+        setAnalysisResult(result.analysis);
+        setMetadata(result.metadata);
+        
+        // Convert to legacy format for ResultsPanel compatibility
+        if (result.analysis && result.analysis.findings) {
+          setResults({
+            score: result.analysis.score || 0,
+            findings: result.analysis.findings || [],
+            summary: result.analysis.summary || 'Analysis completed'
+          });
+        }
+      } else {
+        throw new Error(result.error || 'Analysis failed');
+      }
     } catch (error) {
-      console.error('API Error:', error);
-      // You could add toast notification here for error handling
+      const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+      setError(errorMessage);
+      
+      // Show error toast
+      toast({
+        title: "Analysis Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      
       setResults({
         score: 0,
         findings: [],
-        summary: `Analysis failed: ${error.message}`
+        summary: `Analysis failed: ${errorMessage}`
       });
     } finally {
-      setIsAnalyzing(false);
+      setLoading(false);
     }
   };
 
@@ -149,7 +178,7 @@ const Index = () => {
                         language={language}
                         setLanguage={setLanguage}
                         onAnalyze={analyzeCode}
-                        isAnalyzing={isAnalyzing}
+                        isAnalyzing={loading}
                       />
                     </div>
                   </Card>
@@ -164,7 +193,7 @@ const Index = () => {
                   <Card className="glass-card h-full">
                     <div className="p-6 h-full">
                       <ResultsPanel 
-                        isAnalyzing={isAnalyzing}
+                        isAnalyzing={loading}
                         results={results}
                       />
                     </div>
