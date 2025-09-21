@@ -20,69 +20,48 @@ const Index = () => {
     summary: string;
   } | null>(null);
 
-  // Mock analysis function
+  const API_URL = 'https://secure-code-analyzer.your-username.workers.dev';
+
+  // API function to analyze code
   const analyzeCode = async () => {
+    if (!code.trim()) {
+      return;
+    }
+
     setIsAnalyzing(true);
     setResults(null);
 
-    // Simulate API call
-    setTimeout(() => {
-      const mockFindings: SecurityFinding[] = [
-        {
-          id: '1',
-          title: 'Cross-Site Scripting (XSS) Vulnerability',
-          severity: 'critical',
-          category: 'Input Validation',
-          description: 'Direct innerHTML assignment with user input can lead to XSS attacks. Untrusted data should be properly sanitized before rendering.',
-          lineNumber: 3,
-          codeSnippet: 'document.getElementById(\'content\').innerHTML = userInput;',
-          recommendation: 'Use textContent instead of innerHTML, or sanitize the input using a library like DOMPurify.',
-          cweId: '79',
-          owaspRef: 'A03:2021'
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          id: '2',
-          title: 'SQL Injection Risk',
-          severity: 'high',
-          category: 'Database Security',
-          description: 'String concatenation in SQL queries can lead to SQL injection attacks when user input is not properly validated.',
-          lineNumber: 8,
-          codeSnippet: 'const query = "SELECT * FROM users WHERE id = " + userId;',
-          recommendation: 'Use parameterized queries or prepared statements to prevent SQL injection.',
-          cweId: '89',
-          owaspRef: 'A03:2021'
-        },
-        {
-          id: '3',
-          title: 'Hardcoded Credentials',
-          severity: 'medium',
-          category: 'Authentication',
-          description: 'Hardcoded passwords in source code pose a security risk and should be stored securely.',
-          lineNumber: 13,
-          codeSnippet: 'if (password === "admin123") {',
-          recommendation: 'Use environment variables or a secure configuration management system for credentials.',
-          cweId: '798',
-          owaspRef: 'A02:2021'
-        },
-        {
-          id: '4',
-          title: 'Missing Input Validation',
-          severity: 'low',
-          category: 'Input Validation',
-          description: 'Function parameters should be validated to ensure they meet expected criteria.',
-          lineNumber: 2,
-          recommendation: 'Add input validation and sanitization for all user-provided data.',
-          cweId: '20'
-        }
-      ];
-
-      setResults({
-        score: 4.2,
-        findings: mockFindings,
-        summary: 'Found 4 security issues including 1 critical XSS vulnerability that requires immediate attention.'
+        body: JSON.stringify({
+          code: code,
+          language: language,
+          analysisType: 'security',
+          userApiKey: apiMode === 'user' ? apiKey : null
+        })
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      setResults(result);
+    } catch (error) {
+      console.error('API Error:', error);
+      // You could add toast notification here for error handling
+      setResults({
+        score: 0,
+        findings: [],
+        summary: `Analysis failed: ${error.message}`
+      });
+    } finally {
       setIsAnalyzing(false);
-    }, 3000);
+    }
   };
 
   return (
