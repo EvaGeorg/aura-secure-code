@@ -26,7 +26,7 @@ const Index = () => {
   } | null>(null);
   const { toast } = useToast();
 
-  const API_URL = 'https://secure-code-analyzer.your-username.workers.dev';
+  const API_URL = 'https://secure-code-analyzer.evaincybersec.workers.dev';
 
   // API function to analyze code
   const analyzeCode = async () => {
