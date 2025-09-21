@@ -40,22 +40,45 @@ const Index = () => {
       setError('');
       setResults(null);
       
+      console.log('Starting API call to:', API_URL);
+      console.log('Request payload:', {
+        code: code.substring(0, 100) + '...',
+        language,
+        analysisType: 'security',
+        userApiKey: apiMode === 'user' ? '***' : null
+      });
+
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
           code: code,
           language: language || 'javascript',
           analysisType: 'security',
           userApiKey: apiMode === 'user' ? apiKey : null
-        })
+        }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error(`Analysis failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        throw new Error(`API returned ${response.status}: ${errorText || 'Unknown error'}`);
       }
 
       const result = await response.json();
+      console.log('API response:', result);
       
       if (result.success) {
         setAnalysisResult(result.analysis);
@@ -69,16 +92,32 @@ const Index = () => {
             summary: result.analysis.summary || 'Analysis completed'
           });
         }
+        
+        toast({
+          title: "Analysis Complete",
+          description: "Code analysis finished successfully",
+        });
       } else {
         throw new Error(result.error || 'Analysis failed');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+      console.error('API Error details:', error);
+      
+      let errorMessage = 'Analysis failed';
+      
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timeout - please try again';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Network error - check if your Cloudflare Worker is running and has CORS enabled';
+      } else {
+        errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+      }
+      
       setError(errorMessage);
       
       // Show error toast
       toast({
-        title: "Analysis Failed",
+        title: "Analysis Failed", 
         description: errorMessage,
         variant: "destructive",
       });
