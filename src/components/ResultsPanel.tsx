@@ -238,89 +238,49 @@ export const ResultsPanel = ({ isAnalyzing, results }: ResultsPanelProps) => {
           {/* Findings List */}
           <div className="space-y-3">
             {results.findings.map((finding) => (
-              <Collapsible key={finding.id}>
-                <Card className="glass-card">
-                  <CollapsibleTrigger asChild>
-                    <CardHeader 
-                      className="cursor-pointer hover:bg-accent/20 transition-colors"
-                      onClick={() => toggleFinding(finding.id)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          <div className={`severity-${finding.severity} mt-1`}>
-                            {getSeverityIcon(finding.severity)}
-                          </div>
-                          <div className="flex-1">
-                            <CardTitle className="text-base">{finding.title}</CardTitle>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge 
-                                variant={getSeverityColor(finding.severity) as any}
-                                className="text-xs"
-                              >
-                                {finding.severity.toUpperCase()}
-                              </Badge>
-                              <span className="text-sm text-muted-foreground">
-                                {finding.category}
-                              </span>
-                              {finding.lineNumber && (
-                                <span className="text-xs text-muted-foreground">
-                                  Line {finding.lineNumber}
-                                </span>
-                              )}
-                            </div>
-                          </div>
+              <Card key={finding.id} className="glass-card">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`severity-${finding.severity} mt-1`}>
+                      {getSeverityIcon(finding.severity)}
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      {/* Vulnerability Name & Severity */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-base font-medium">{finding.title}</h3>
+                          <Badge 
+                            variant={getSeverityColor(finding.severity) as any}
+                            className="text-xs"
+                          >
+                            {finding.severity.toUpperCase()}
+                          </Badge>
                         </div>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${
-                          expandedFindings.has(finding.id) ? 'rotate-180' : ''
-                        }`} />
                       </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
 
-                  <CollapsibleContent>
-                    <CardContent className="pt-0">
-                      <div className="space-y-4">
+                      {/* Recommendation & Fix */}
+                      <div className="space-y-2">
                         <div>
-                          <h4 className="font-medium mb-2">Description</h4>
-                          <p className="text-sm text-muted-foreground">{finding.description}</p>
-                        </div>
-
-                        {finding.codeSnippet && (
-                          <div>
-                            <h4 className="font-medium mb-2 flex items-center gap-2">
-                              <Code className="h-4 w-4" />
-                              Vulnerable Code
-                            </h4>
-                            <div className="glass p-3 rounded font-mono text-sm overflow-x-auto">
-                              <pre className="text-muted-foreground">{finding.codeSnippet}</pre>
-                            </div>
-                          </div>
-                        )}
-
-                        <div>
-                          <h4 className="font-medium mb-2">Recommendation</h4>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-1">Fix:</h4>
                           <p className="text-sm text-success">{finding.recommendation}</p>
                         </div>
-
-                        <div className="flex items-center justify-between pt-2 border-t">
-                          <div className="flex gap-2 text-xs text-muted-foreground">
-                            {finding.cweId && <span>CWE-{finding.cweId}</span>}
-                            {finding.owaspRef && <span>OWASP {finding.owaspRef}</span>}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyFinding(finding)}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
                       </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
+
+                      {/* Copy button */}
+                      <div className="flex justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyFinding(finding)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </motion.div>
