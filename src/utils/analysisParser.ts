@@ -7,93 +7,63 @@ export interface ParsedAnalysis {
 }
 
 export const parseGeminiAnalysis = (rawAnalysis: string): ParsedAnalysis => {
-  const lines = rawAnalysis.split('\n');
   const findings: SecurityFinding[] = [];
-  let currentFinding: Partial<SecurityFinding> | null = null;
   let summary = '';
-  let score = 7; // Default score
+  let score = 7;
 
-  // Extract overall security rating if mentioned
+  // Extract overall security rating
   const ratingMatch = rawAnalysis.match(/(?:security\s+)?(?:rating|score)(?:\s*:)?\s*(\d+)(?:\/10)?/i);
   if (ratingMatch) {
     score = parseInt(ratingMatch[1]);
   }
 
-  // Extract summary from the first paragraph or overall assessment
+  // Extract summary
   const summaryMatch = rawAnalysis.match(/(?:## )?(?:Summary|Overall|Analysis)[\s\S]*?\n\n(.*?)(?:\n\n|$)/i);
   if (summaryMatch) {
     summary = summaryMatch[1].trim();
   } else {
-    // Fallback: use first meaningful paragraph
     const firstParagraph = rawAnalysis.split('\n\n')[0];
     summary = firstParagraph.length > 20 ? firstParagraph : 'Security analysis completed';
   }
 
+  // Split analysis into sections by numbered items, bullet points, or headers
+  const sections = rawAnalysis.split(/(?:\n\s*(?:\d+\.|\*\*|\#{1,3}|\-)\s*)|(?:\n\n)/);
+  
   let findingId = 1;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+  let currentSection = '';
+  
+  for (const section of sections) {
+    const trimmed = section.trim();
+    if (!trimmed || trimmed.length < 20) continue;
     
-    // Skip empty lines
-    if (!line) continue;
-
-    // Detect vulnerability sections (various patterns)
-    if (isVulnerabilityTitle(line)) {
-      // Save previous finding if exists
-      if (currentFinding && currentFinding.title) {
-        findings.push(completeFinding(currentFinding, findingId++));
+    currentSection += trimmed + '\n\n';
+    
+    // Check if this section contains vulnerability indicators
+    if (hasVulnerabilityIndicators(trimmed)) {
+      const finding = extractVulnerabilityFromSection(currentSection, findingId++);
+      if (finding) {
+        findings.push(finding);
       }
-
-      // Start new finding
-      currentFinding = {
-        title: cleanTitle(line),
-        severity: extractSeverity(line, rawAnalysis.substring(rawAnalysis.indexOf(line))),
-        category: extractCategory(line),
-        description: '',
-        recommendation: ''
-      };
-    }
-    // Extract description content
-    else if (currentFinding && isDescriptionContent(line)) {
-      if (line.toLowerCase().includes('recommendation') || line.toLowerCase().includes('fix') || line.toLowerCase().includes('solution')) {
-        currentFinding.recommendation = (currentFinding.recommendation || '') + ' ' + line.replace(/^[*-]\s*/, '').trim();
-      } else {
-        currentFinding.description = (currentFinding.description || '') + ' ' + line.replace(/^[*-]\s*/, '').trim();
-      }
-    }
-    // Extract code snippets
-    else if (line.startsWith('```') && currentFinding) {
-      let codeBlock = '';
-      i++; // Skip the opening ```
-      while (i < lines.length && !lines[i].trim().startsWith('```')) {
-        codeBlock += lines[i] + '\n';
-        i++;
-      }
-      currentFinding.codeSnippet = codeBlock.trim();
-    }
-    // Extract CWE/OWASP references
-    else if (currentFinding && (line.includes('CWE') || line.includes('OWASP'))) {
-      const cweMatch = line.match(/CWE[:-]\s*(\d+)/i);
-      const owaspMatch = line.match(/OWASP\s+([\w\s]+)/i);
-      
-      if (cweMatch) currentFinding.cweId = cweMatch[1];
-      if (owaspMatch) currentFinding.owaspRef = owaspMatch[1].trim();
+      currentSection = '';
     }
   }
 
-  // Don't forget the last finding
-  if (currentFinding && currentFinding.title) {
-    findings.push(completeFinding(currentFinding, findingId));
+  // Process any remaining section
+  if (currentSection.trim() && hasVulnerabilityIndicators(currentSection)) {
+    const finding = extractVulnerabilityFromSection(currentSection, findingId);
+    if (finding) {
+      findings.push(finding);
+    }
   }
 
-  // If no structured findings found, create general findings from the analysis
+  // If no structured findings found, create general findings
   if (findings.length === 0) {
     findings.push(...extractGeneralFindings(rawAnalysis));
   }
 
   // Calculate score based on findings
   if (findings.length > 0) {
-    const severityWeights = { critical: 0, high: 2, medium: 5, low: 7 };
+    const severityWeights = { critical: 1, high: 3, medium: 6, low: 8 };
     const avgSeverity = findings.reduce((sum, f) => sum + (severityWeights[f.severity] || 5), 0) / findings.length;
     score = Math.max(1, Math.min(10, Math.round(avgSeverity)));
   }
@@ -104,6 +74,113 @@ export const parseGeminiAnalysis = (rawAnalysis: string): ParsedAnalysis => {
     summary: summary || 'Code analysis completed successfully'
   };
 };
+
+function hasVulnerabilityIndicators(text: string): boolean {
+  const vulnerabilityKeywords = [
+    'vulnerability', 'injection', 'xss', 'csrf', 'authentication', 'authorization',
+    'hardcoded', 'insecure', 'weak', 'exposed', 'security', 'risk', 'threat',
+    'exploit', 'attack', 'malicious', 'unsafe', 'deprecated', 'outdated'
+  ];
+  
+  const lowerText = text.toLowerCase();
+  return vulnerabilityKeywords.some(keyword => lowerText.includes(keyword));
+}
+
+function extractVulnerabilityFromSection(section: string, id: number): SecurityFinding | null {
+  const lines = section.split('\n').map(line => line.trim()).filter(line => line);
+  if (lines.length === 0) return null;
+
+  // Extract title from first significant line
+  let title = lines[0];
+  title = cleanTitle(title);
+  
+  if (!title || title.length < 5) return null;
+
+  // Extract severity and category
+  const severity = extractSeverity(title, section);
+  const category = extractCategory(title);
+  
+  // Extract description and recommendation
+  let description = '';
+  let recommendation = '';
+  let codeSnippet = '';
+  let lineNumber: number | undefined;
+  let cweId: string | undefined;
+  let owaspRef: string | undefined;
+  
+  let isInCodeBlock = false;
+  let currentCodeBlock = '';
+  
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Handle code blocks
+    if (line.startsWith('```')) {
+      if (isInCodeBlock) {
+        codeSnippet = currentCodeBlock.trim();
+        currentCodeBlock = '';
+        isInCodeBlock = false;
+      } else {
+        isInCodeBlock = true;
+      }
+      continue;
+    }
+    
+    if (isInCodeBlock) {
+      currentCodeBlock += line + '\n';
+      continue;
+    }
+    
+    // Extract line numbers
+    const lineMatch = line.match(/line\s*(\d+)/i);
+    if (lineMatch && !lineNumber) {
+      lineNumber = parseInt(lineMatch[1]);
+    }
+    
+    // Extract CWE/OWASP references
+    const cweMatch = line.match(/CWE[:-]\s*(\d+)/i);
+    const owaspMatch = line.match(/OWASP\s+([\w\s-]+)/i);
+    
+    if (cweMatch && !cweId) cweId = cweMatch[1];
+    if (owaspMatch && !owaspRef) owaspRef = owaspMatch[1].trim();
+    
+    // Categorize content as description or recommendation
+    const lowerLine = line.toLowerCase();
+    if (lowerLine.includes('fix') || lowerLine.includes('solution') || 
+        lowerLine.includes('recommendation') || lowerLine.includes('should') ||
+        lowerLine.includes('mitigation') || lowerLine.includes('prevent')) {
+      recommendation += ' ' + line.replace(/^[*-]\s*/, '').trim();
+    } else if (line.length > 10 && !line.match(/^\s*[*-]\s*$/)) {
+      description += ' ' + line.replace(/^[*-]\s*/, '').trim();
+    }
+  }
+  
+  // Clean up final values
+  description = description.trim();
+  recommendation = recommendation.trim();
+  
+  // Ensure we have meaningful content
+  if (!description) {
+    description = `Security issue identified: ${title}`;
+  }
+  
+  if (!recommendation) {
+    recommendation = `Review and address the ${category.toLowerCase()} vulnerability.`;
+  }
+
+  return {
+    id: `finding-${id}`,
+    title,
+    severity,
+    category,
+    description,
+    recommendation,
+    lineNumber,
+    codeSnippet: codeSnippet || undefined,
+    cweId,
+    owaspRef
+  };
+}
 
 function isVulnerabilityTitle(line: string): boolean {
   const patterns = [
