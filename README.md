@@ -1,4 +1,4 @@
-# aura-secure-code-ai
+# aura-secure-code
 AI-Powered Security Vulnerability Scanner - SecureCode AI is a specialized security vulnerability scanner that uses Google's Gemini AI to perform comprehensive security analysis on your code. Built for developers who prioritize security, this tool identifies critical vulnerabilities and provides actionable fix recommendations.
 
 🛡️ SecureCode AI - AI-Powered Security Vulnerability Scanner
