@@ -1,73 +1,132 @@
-# Welcome to your Lovable project
+# aura-secure-code-ai
+AI-Powered Security Vulnerability Scanner - SecureCode AI is a specialized security vulnerability scanner that uses Google's Gemini AI to perform comprehensive security analysis on your code. Built for developers who prioritize security, this tool identifies critical vulnerabilities and provides actionable fix recommendations.
 
-## Project info
+🛡️ SecureCode AI - AI-Powered Security Vulnerability Scanner
 
-**URL**: https://lovable.dev/projects/26c29b4f-00ac-4b47-95f4-3013c7c1707c
+Find critical security vulnerabilities in your code in seconds using Google Gemini AI
 
-## How can I edit this code?
+## 🎯 What It Does
+SecureCode AI does one thing exceptionally well: security vulnerability detection. It analyzes your code and provides:
 
-There are several ways of editing your application.
+🚨 Critical Vulnerabilities - Immediate security threats (SQL injection, XSS, etc.)
+⚠️ High Risk Issues - Serious security concerns requiring attention
+💡 Medium Risk Items - Security improvements worth implementing
+📝 Low Risk Notes - Minor security enhancements
 
-**Use Lovable**
+## 🔍 Security Analysis Focus
+This tool specifically scans for:
+🛡️ OWASP Top 10 Vulnerabilities
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/26c29b4f-00ac-4b47-95f4-3013c7c1707c) and start prompting.
+- SQL Injection
+- Cross-Site Scripting (XSS)
+- Authentication Bypass
+- Insecure Direct Object References
+- Security Misconfiguration
+- Sensitive Data Exposure
+- Missing Access Controls
+- Cross-Site Request Forgery (CSRF)
+- Insecure Deserialization
+- Known Vulnerable Components
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🔐 Additional Security Issues
 
-**Use your preferred IDE**
+- Hardcoded secrets and API keys
+- Weak cryptographic practices
+- Buffer overflow vulnerabilities
+- Path traversal attacks
+- Input validation flaws
+- Insecure file operations
+- Race condition vulnerabilities
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 💻 Supported Languages
+20+ Programming Languages:
+JavaScript    TypeScript    Python       Java         PHP
+C#           C++           Go           Rust         Ruby
+Swift        Kotlin        SQL          HTML         CSS  
+Shell/Bash   YAML          JSON         Dockerfile   XML
 
-Follow these steps:
+## 🚀 How to Use
+1️⃣ Direct Code Analysis
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Paste your code into the editor
+Select programming language (auto-detected)
+Click "Analyze Security"
+Get detailed vulnerability report
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2️⃣ File Upload Analysis
 
-# Step 3: Install the necessary dependencies.
-npm i
+Drag & drop files or click to upload
+Supports multiple files simultaneously
+Each file analyzed separately
+Download comprehensive reports
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+3️⃣ API Key Options
 
-**Edit a file directly in GitHub**
+🌐 Free Tier: Use our server (20 analyses/hour)
+🔑 Your API Key: Unlimited with your Gemini API key
+📱 Demo Mode: View sample results without API calls
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
 
-**Use GitHub Codespaces**
+## 🏗️ Architecture
+### Frontend (Lovable)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Modern React-based UI
+Syntax highlighting with Monaco Editor
+Real-time analysis with debouncing
+Responsive design with dark cybersecurity theme
 
-## What technologies are used for this project?
+### Backend (Cloudflare Worker)
 
-This project is built with:
+Secure API proxy for Gemini AI
+Rate limiting and abuse protection
+Input validation and sanitization
+No code storage - analyze and discard
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### AI Engine (Google Gemini)
 
-## How can I deploy this project?
+Advanced code understanding
+Context-aware vulnerability detection
+OWASP-compliant security recommendations
+Structured analysis reports
 
-Simply open [Lovable](https://lovable.dev/projects/26c29b4f-00ac-4b47-95f4-3013c7c1707c) and click on Share -> Publish.
+[User] → [Lovable Frontend] → [Cloudflare Worker] → [Google Gemini AI]
+         ↳ Code Input         ↳ Secure Proxy      ↳ Security Analysis
 
-## Can I connect a custom domain to my Lovable project?
+## 📋 Analysis Output Format
+SecureCode AI provides structured, actionable reports.
 
-Yes, you can!
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🛠️ Setup & Deployment
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### **Prerequisites**
+- Google Gemini API key ([Get one here](https://ai.google.dev))
+- Cloudflare account (free tier works)
+
+### **Deploy the Backend**
+```bash
+1. Create Cloudflare Worker
+npm create cloudflare@latest securecode-worker
+cd securecode-worker
+
+2. Add the worker code from this repository
+3. Set your Gemini API key
+npx wrangler secret put GEMINI_API_KEY
+
+4. Deploy
+npx wrangler deploy
+Deploy the Frontend
+
+Import this repository to Lovable
+Update the API endpoint in the code
+Deploy to Vercel/Netlify via Lovable's export feature
+
+Environment Variables
+envGEMINI_API_KEY=your_gemini_api_key_here
+ALLOWED_ORIGIN=https://your-frontend-domain.com  # Optional
+
+🔒 Security & Privacy
+
+No Code Storage: Code is analyzed in real-time and immediately discarded
+API Key Security: Your Gemini API key is stored securely in Cloudflare Workers
+No Logging: Code content is never logged or stored
