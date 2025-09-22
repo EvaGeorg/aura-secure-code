@@ -8,10 +8,13 @@ Find critical security vulnerabilities in your code in seconds using Google Gemi
 ## 🎯 What It Does
 SecureCode AI does one thing exceptionally well: security vulnerability detection. It analyzes your code and provides:
 
-🚨 Critical Vulnerabilities - Immediate security threats (SQL injection, XSS, etc.)
-⚠️ High Risk Issues - Serious security concerns requiring attention
-💡 Medium Risk Items - Security improvements worth implementing
-📝 Low Risk Notes - Minor security enhancements
+<img width="1562" height="899" alt="image" src="https://github.com/user-attachments/assets/75403ffc-e5cc-48cc-a341-10ffcd8b3f96" />
+
+
+<br>🚨 Critical Vulnerabilities - Immediate security threats (SQL injection, XSS, etc.)
+<br>⚠️ High Risk Issues - Serious security concerns requiring attention
+<br>💡 Medium Risk Items - Security improvements worth implementing
+<br>📝 Low Risk Notes - Minor security enhancements
 
 ## 🔍 Security Analysis Focus
 This tool specifically scans for:
@@ -124,8 +127,9 @@ Deploy to Vercel/Netlify via Lovable's export feature
 Environment Variables
 envGEMINI_API_KEY=your_gemini_api_key_here
 ALLOWED_ORIGIN=https://your-frontend-domain.com  # Optional
+```
 
-🔒 Security & Privacy
+##🔒 Security & Privacy
 
 No Code Storage: Code is analyzed in real-time and immediately discarded
 API Key Security: Your Gemini API key is stored securely in Cloudflare Workers
