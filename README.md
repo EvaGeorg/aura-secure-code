@@ -3,7 +3,6 @@ AI-Powered Security Vulnerability Scanner - SecureCode AI is a specialized secur
 
 🛡️ SecureCode AI - AI-Powered Security Vulnerability Scanner
 
-URL (https://aura-secure-code.lovable.app/)
 
 Find critical security vulnerabilities in your code in seconds using Google Gemini AI
 
